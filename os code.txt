@@ -1,0 +1,49 @@
+import socket
+import threading
+
+# Server configuration
+HOST = '127.0.0.1'  # Localhost
+PORT = 5050
+
+# List to keep track of connected clients
+clients = []
+
+# Function to handle client connections
+def handle_client(client, address):
+    print(f"[NEW CONNECTION] {address} connected.")
+
+    while True:
+        # Receive message from the client
+        message = client.recv(1024).decode('utf-8')
+
+        # Broadcast the message to all clients
+        for c in clients:
+            if c != client:
+                c.send(message.encode('utf-8'))
+
+        # If the client disconnected, remove it from the list of clients and close the connection
+        if not message:
+            clients.remove(client)
+            client.close()
+            print(f"[DISCONNECTED] {address} disconnected.")
+            break
+
+# Function to start the server
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((HOST, PORT))
+    server.listen()
+
+    print(f"[SERVER STARTED] Listening on {HOST}:{PORT}")
+
+    while True:
+        # Accept incoming connections
+        client, address = server.accept()
+        clients.append(client)
+
+        # Start a new thread to handle the client
+        thread = threading.Thread(target=handle_client, args=(client, address))
+        thread.start()
+
+# Start the server
+start_server()
